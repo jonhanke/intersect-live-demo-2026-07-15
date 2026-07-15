@@ -27,17 +27,63 @@ function haversineMeters(a: Coords, b: Coords): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+// Parking/transit are fetched slightly beyond the search radius so a
+// restaurant at the edge still finds its garage or stop just outside.
+const NEARBY_BUFFER_METERS = 300;
+
 function buildQuery(params: SearchParams): string {
   const { lat, lon, radiusMeters, cuisine } = params;
   const cuisineFilter = cuisine
     ? `["cuisine"~"${cuisine.replace(/[^a-z_;, ]/gi, "")}",i]`
     : "";
+  const nearbyRadius = radiusMeters + NEARBY_BUFFER_METERS;
+  const parkingClause = params.includeParking
+    ? `  nwr["amenity"~"^(parking|parking_entrance)$"](around:${nearbyRadius},${lat},${lon});\n`
+    : "";
+  const transitClause = params.includeTransit
+    ? `  node["highway"="bus_stop"](around:${nearbyRadius},${lat},${lon});
+  node["railway"~"^(station|halt|tram_stop|subway_entrance)$"](around:${nearbyRadius},${lat},${lon});\n`
+    : "";
   // Restaurants (and fast food) as nodes, ways, and relations within the radius.
   return `[out:json][timeout:25];
 (
   nwr["amenity"~"restaurant|fast_food"]${cuisineFilter}(around:${radiusMeters},${lat},${lon});
-);
+${parkingClause}${transitClause});
 out center tags;`;
+}
+
+function coordsOf(el: OverpassElement): Coords | null {
+  if (el.lat != null && el.lon != null) return { lat: el.lat, lon: el.lon };
+  if (el.center) return { lat: el.center.lat, lon: el.center.lon };
+  return null;
+}
+
+function isRestaurant(tags: Record<string, string>): boolean {
+  return /(^|;)(restaurant|fast_food)($|;)/.test(tags.amenity ?? "");
+}
+
+function isPublicParking(tags: Record<string, string>): boolean {
+  if (tags.amenity !== "parking" && tags.amenity !== "parking_entrance") {
+    return false;
+  }
+  // Skip lots the public can't use (private, customers-of-someone-else…).
+  return tags.access !== "private" && tags.access !== "no";
+}
+
+function isTransitStop(tags: Record<string, string>): boolean {
+  return (
+    tags.highway === "bus_stop" ||
+    /^(station|halt|tram_stop|subway_entrance)$/.test(tags.railway ?? "")
+  );
+}
+
+function nearestMeters(from: Coords, points: Coords[]): number | null {
+  let best: number | null = null;
+  for (const p of points) {
+    const d = haversineMeters(from, p);
+    if (best === null || d < best) best = d;
+  }
+  return best === null ? null : Math.round(best);
 }
 
 function toRestaurant(el: OverpassElement, origin: Coords): Restaurant | null {
@@ -45,12 +91,7 @@ function toRestaurant(el: OverpassElement, origin: Coords): Restaurant | null {
   const name = tags.name;
   if (!name) return null;
 
-  const coords: Coords | null =
-    el.lat != null && el.lon != null
-      ? { lat: el.lat, lon: el.lon }
-      : el.center
-        ? { lat: el.center.lat, lon: el.center.lon }
-        : null;
+  const coords = coordsOf(el);
   if (!coords) return null;
 
   const cuisine = tags.cuisine
@@ -71,6 +112,8 @@ function toRestaurant(el: OverpassElement, origin: Coords): Restaurant | null {
     distanceMeters: Math.round(haversineMeters(origin, coords)),
     openingHours: tags.opening_hours ?? null,
     isOpenNow: null, // filled in later by the open-now filter
+    parkingDistanceMeters: null, // filled in below when parking was fetched
+    transitDistanceMeters: null, // filled in below when transit was fetched
     address: addressParts.length ? addressParts.join(" ") : null,
     website: tags.website ?? tags["contact:website"] ?? null,
   };
@@ -95,9 +138,35 @@ export async function fetchRestaurants(params: SearchParams): Promise<Restaurant
   const data = (await res.json()) as { elements: OverpassElement[] };
   const origin: Coords = { lat: params.lat, lon: params.lon };
 
-  const restaurants = data.elements
+  // One response can mix restaurants, parking, and transit stops — partition
+  // by tags (named parking garages must not become wheel candidates).
+  const restaurantEls: OverpassElement[] = [];
+  const parkingPoints: Coords[] = [];
+  const transitPoints: Coords[] = [];
+  for (const el of data.elements) {
+    const tags = el.tags ?? {};
+    if (isRestaurant(tags)) {
+      restaurantEls.push(el);
+      continue;
+    }
+    const coords = coordsOf(el);
+    if (!coords) continue;
+    if (isPublicParking(tags)) parkingPoints.push(coords);
+    else if (isTransitStop(tags)) transitPoints.push(coords);
+  }
+
+  const restaurants = restaurantEls
     .map((el) => toRestaurant(el, origin))
     .filter((r): r is Restaurant => r !== null)
+    .map((r) => ({
+      ...r,
+      parkingDistanceMeters: params.includeParking
+        ? nearestMeters(r.coords, parkingPoints)
+        : null,
+      transitDistanceMeters: params.includeTransit
+        ? nearestMeters(r.coords, transitPoints)
+        : null,
+    }))
     .sort((a, b) => a.distanceMeters - b.distanceMeters);
 
   // De-duplicate by name+rounded-location (OSM sometimes has node+way for one place).
