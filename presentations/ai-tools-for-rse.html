@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Tools for Research Software Engineers</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --surface2: #1c2030;
+    --border: #252a3a;
+    --accent: #7ee8a2;
+    --accent2: #5bbdff;
+    --accent3: #f7c59f;
+    --warn: #ff8c69;
+    --text: #e4e8f1;
+    --muted: #6b778d;
+    --dim: #3a4055;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .deck {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 80px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+  }
+
+  .slide.exit {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* ── GRID BACKGROUND ── */
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  /* ── NAV ── */
+  .nav {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 40px;
+    padding: 10px 20px;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+
+  .nav button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+
+  .nav button:hover { color: var(--accent); background: var(--surface2); }
+
+  .slide-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .progress-dots {
+    display: flex;
+    gap: 5px;
+  }
+
+  .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--dim);
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+
+  .dot.active { background: var(--accent); transform: scale(1.4); }
+
+  /* ── BADGES / TAGS ── */
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+
+  .tag-green  { background: rgba(126,232,162,0.12); color: var(--accent); border: 1px solid rgba(126,232,162,0.25); }
+  .tag-blue   { background: rgba(91,189,255,0.12);  color: var(--accent2); border: 1px solid rgba(91,189,255,0.25); }
+  .tag-orange { background: rgba(247,197,159,0.12); color: var(--accent3); border: 1px solid rgba(247,197,159,0.25); }
+  .tag-red    { background: rgba(255,140,105,0.12); color: var(--warn);   border: 1px solid rgba(255,140,105,0.25); }
+
+  /* ── TYPOGRAPHY ── */
+  h1 { font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(1.8rem, 3.5vw, 2.6rem); font-weight: 700; line-height: 1.2; }
+  h3 { font-size: 1.2rem; font-weight: 600; }
+
+  .subtitle {
+    font-size: clamp(1rem, 2vw, 1.3rem);
+    color: var(--muted);
+    margin-top: 16px;
+    max-width: 680px;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* ── CARDS GRID ── */
+  .cards {
+    display: grid;
+    gap: 16px;
+    width: 100%;
+    max-width: 960px;
+    margin-top: 32px;
+  }
+
+  .cards-2 { grid-template-columns: 1fr 1fr; }
+  .cards-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .card-green::after  { background: linear-gradient(90deg, var(--accent), transparent); }
+  .card-blue::after   { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .card-orange::after { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .card-red::after    { background: linear-gradient(90deg, var(--warn), transparent); }
+
+  .card h3 { margin-bottom: 10px; }
+  .card p, .card li { font-size: 0.92rem; color: var(--muted); line-height: 1.65; }
+  .card ul { padding-left: 16px; margin-top: 6px; }
+  .card ul li { margin-bottom: 4px; }
+  .card .icon { font-size: 1.8rem; margin-bottom: 12px; }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: #090b10;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: var(--text);
+    width: 100%;
+    max-width: 760px;
+    margin-top: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .code-block::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+  }
+
+  .code-prompt { color: var(--accent); }
+  .code-cmd    { color: var(--accent2); }
+  .code-comment{ color: var(--muted); }
+  .code-string { color: var(--accent3); }
+  .code-flag   { color: var(--warn); }
+
+  /* ── FLOW STEPS ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    max-width: 900px;
+    margin-top: 32px;
+    flex-wrap: nowrap;
+  }
+
+  .flow-step {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 16px;
+    text-align: center;
+    position: relative;
+  }
+
+  .flow-step .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .flow-step .label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .flow-arrow {
+    color: var(--dim);
+    font-size: 1.2rem;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+
+  /* ── TWO-COL LAYOUT ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    width: 100%;
+    max-width: 960px;
+    margin-top: 28px;
+  }
+
+  /* ── BULLET LIST (styled) ── */
+  .bullets {
+    list-style: none;
+    width: 100%;
+    max-width: 760px;
+    margin-top: 28px;
+  }
+
+  .bullets li {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .bullets li:last-child { border-bottom: none; }
+
+  .bullets li .bicon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .bullets li .bdesc {
+    color: var(--muted);
+    font-size: 0.88rem;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* ── ACCENT TEXT ── */
+  .hl-green  { color: var(--accent); }
+  .hl-blue   { color: var(--accent2); }
+  .hl-orange { color: var(--accent3); }
+  .hl-red    { color: var(--warn); }
+
+  /* ── TITLE SLIDE ── */
+  #slide-1 h1 { text-align: center; }
+  #slide-1 .glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(126,232,162,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ── RESOURCE LINKS ── */
+  .resource-list {
+    width: 100%;
+    max-width: 900px;
+    margin-top: 24px;
+    display: grid;
+    gap: 10px;
+  }
+
+  .resource-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+  }
+
+  .resource-item .rcat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    min-width: 90px;
+    text-align: center;
+  }
+
+  .resource-item .rcat-cc  { background: rgba(126,232,162,0.1); color: var(--accent); border: 1px solid rgba(126,232,162,0.2); }
+  .resource-item .rcat-sw  { background: rgba(91,189,255,0.1);  color: var(--accent2); border: 1px solid rgba(91,189,255,0.2); }
+  .resource-item .rcat-mac { background: rgba(247,197,159,0.1); color: var(--accent3); border: 1px solid rgba(247,197,159,0.2); }
+
+  .resource-item .rname { font-weight: 600; font-size: 0.9rem; }
+  .resource-item .rurl  { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+  /* ── QUOTE ── */
+  .quote-block {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 20px 28px;
+    max-width: 760px;
+    margin-top: 28px;
+    font-size: 1.05rem;
+    line-height: 1.65;
+    font-style: italic;
+    color: #c8d0e2;
+  }
+
+  .quote-attr {
+    font-style: normal;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── AGENDA TIMELINE ── */
+  .agenda {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 840px;
+    margin-top: 24px;
+  }
+
+  .agenda-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+  }
+
+  .agenda-item .anum {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .agenda-item .atitle { font-size: 0.9rem; font-weight: 600; }
+  .agenda-item .asub   { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+  /* ── COMPARISON TABLE ── */
+  .comp-table {
+    width: 100%;
+    max-width: 820px;
+    margin-top: 24px;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+
+  .comp-table th {
+    background: var(--surface2);
+    padding: 12px 18px;
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comp-table td {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  .comp-table tr:last-child td { border-bottom: none; }
+  .comp-table tr:hover td { background: var(--surface); }
+
+  /* keyboard hint */
+  .kb-hint {
+    position: fixed;
+    top: 18px;
+    right: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    z-index: 100;
+  }
+
+  kbd {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="kb-hint"><kbd>←</kbd> <kbd>→</kbd> or click arrows to navigate</div>
+
+<div class="deck" id="deck">
+
+  <!-- ══ SLIDE 1: TITLE ══ -->
+  <div class="slide" id="slide-1">
+    <div class="glow"></div>
+    <div class="tag tag-green">Research Software Engineering · 2025–26</div>
+    <h1>
+      AI Tools That<br>
+      <span class="hl-green">Supercharge</span> Your Workflow
+    </h1>
+    <p class="subtitle">
+      A practical guide to <span class="hl-green">Claude Code</span>, 
+      <span class="hl-blue">Super Whisper</span>, and 
+      <span class="hl-orange">macOS Dictation</span> — with best practices to actually get results.
+    </p>
+  </div>
+
+  <!-- ══ SLIDE 2: AGENDA ══ -->
+  <div class="slide" id="slide-2">
+    <div class="tag tag-blue">Overview</div>
+    <h2>What We'll Cover</h2>
+    <div class="agenda">
+      <div class="agenda-item">
+        <span class="anum">01</span>
+        <div><div class="atitle">The AI-Augmented RSE</div><div class="asub">Mindset shift for working with AI agents</div></div>
+      </div>
+      <div class="agenda-item">
+        <span class="anum">02</span>
+        <div><div class="atitle">Claude Code — Overview</div><div class="asub">What it is, how it works</div></div>
+      </div>
+      <div class="agenda-item">
+        <span class="anum">03</span>
+        <div><div class="atitle">Claude Code — Workflows</div><div class="asub">CLAUDE.md, Plan Mode, parallel sessions</div></div>
+      </div>
+      <div class="agenda-item">
+        <span class="anum">04</span>
+        <div><div class="atitle">Claude Code — Best Practices</div><div class="asub">Context, verification, iteration</div></div>
+      </div>
+      <div class="agenda-item">
+        <span class="anum">05</span>
+        <div><div class="atitle">Speech-to-Text Tools</div><div class="asub">Super Whisper vs macOS dictation</div></div>
+      </div>
+      <div class="agenda-item">
+        <span class="anum">06</span>
+        <div><div class="atitle">Voice + Claude Code</div><div class="asub">Combining tools for peak flow</div></div>
+      </div>
+      <div class="agenda-item">
+        <span class="anum">07</span>
+        <div><div class="atitle">Resources & Next Steps</div><div class="asub">Where to keep learning</div></div>
+      </div>
+      <div class="agenda-item">
+        <span class="anum">08</span>
+        <div><div class="atitle">Q&A / Demo</div><div class="asub">Let's try it live</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 3: MINDSET ══ -->
+  <div class="slide" id="slide-3">
+    <div class="tag tag-orange">Mindset</div>
+    <h2>The AI-Augmented RSE</h2>
+    <div class="quote-block">
+      "Stop thinking of Claude Code as a fancy autocomplete. Think of it as a <strong>junior developer who's incredibly fast</strong> — but needs clear direction, good context, and active collaboration to produce reliable work."
+      <div class="quote-attr">— Community consensus after months of production use</div>
+    </div>
+    <div class="cards cards-3" style="margin-top:28px; max-width:900px;">
+      <div class="card card-orange">
+        <div class="icon">🧭</div>
+        <h3>You are the architect</h3>
+        <p>AI handles the implementation details. You own the design, direction, and quality bar.</p>
+      </div>
+      <div class="card card-green">
+        <div class="icon">🔁</div>
+        <h3>Iterate actively</h3>
+        <p>Don't "ask and pray." Plan first, redirect often, break problems into verifiable steps.</p>
+      </div>
+      <div class="card card-blue">
+        <div class="icon">📋</div>
+        <h3>You own the output</h3>
+        <p>"I'm ultimately responsible for the code in a PR with my name on it." — Chris Dzombak</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 4: CLAUDE CODE WHAT IS IT ══ -->
+  <div class="slide" id="slide-4">
+    <div class="tag tag-green">Claude Code</div>
+    <h2>What is Claude Code?</h2>
+    <div class="two-col" style="margin-top:28px;">
+      <div>
+        <ul class="bullets">
+          <li>
+            <span class="bicon">⚡</span>
+            <div><strong>Agentic CLI tool</strong><span class="bdesc">Runs in your terminal. Reads files, runs commands, edits code — autonomously.</span></div>
+          </li>
+          <li>
+            <span class="bicon">🧠</span>
+            <div><strong>Whole-codebase awareness</strong><span class="bdesc">Understands project structure, conventions, and dependencies. Not just the snippet you paste.</span></div>
+          </li>
+          <li>
+            <span class="bicon">🔧</span>
+            <div><strong>Real tool use</strong><span class="bdesc">Runs tests, linters, builds, git commands — then responds to what it sees.</span></div>
+          </li>
+          <li>
+            <span class="bicon">🔌</span>
+            <div><strong>IDE integration</strong><span class="bdesc">VS Code, Cursor, and Windsurf extensions available. Run parallel instances in split panes.</span></div>
+          </li>
+        </ul>
+      </div>
+      <div class="code-block" style="margin-top:0; height: fit-content;">
+        <span class="code-comment"># Install</span><br>
+        <span class="code-prompt">$</span> <span class="code-cmd">npm install -g @anthropic-ai/claude-code</span><br><br>
+        <span class="code-comment"># Start in your project</span><br>
+        <span class="code-prompt">$</span> <span class="code-cmd">cd my-research-project</span><br>
+        <span class="code-prompt">$</span> <span class="code-cmd">claude</span><br><br>
+        <span class="code-comment"># Initialize project memory</span><br>
+        <span class="code-prompt">&gt;</span> <span class="code-string">/init</span><br><br>
+        <span class="code-comment"># Ask it anything about your code</span><br>
+        <span class="code-prompt">&gt;</span> <span class="code-string">Explain the data pipeline in src/</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 5: HOW IT WORKS ══ -->
+  <div class="slide" id="slide-5">
+    <div class="tag tag-green">Claude Code — Under the Hood</div>
+    <h2>The Agentic Loop</h2>
+    <p class="subtitle" style="margin-bottom: 0;">Claude iterates: read → plan → act → verify → repeat</p>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="num">01</div>
+        <div class="label">Read & Explore<br><span style="color:var(--muted); font-weight:400; font-size:0.75rem;">Files, docs, URLs, images</span></div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">02</div>
+        <div class="label">Plan<br><span style="color:var(--muted); font-weight:400; font-size:0.75rem;">Understanding before coding</span></div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">03</div>
+        <div class="label">Implement<br><span style="color:var(--muted); font-weight:400; font-size:0.75rem;">Edit, create, delete files</span></div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">04</div>
+        <div class="label">Verify<br><span style="color:var(--muted); font-weight:400; font-size:0.75rem;">Run tests, linters, checks</span></div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">05</div>
+        <div class="label">Report & Wait<br><span style="color:var(--muted); font-weight:400; font-size:0.75rem;">Show you what it did</span></div>
+      </div>
+    </div>
+    <div class="code-block" style="margin-top:28px;">
+      <span class="code-comment"># Pipe data directly into Claude</span><br>
+      <span class="code-prompt">$</span> <span class="code-cmd">cat error.log | claude</span><br><br>
+      <span class="code-comment"># Reference files with @ — Claude reads them before responding</span><br>
+      <span class="code-prompt">&gt;</span> <span class="code-string">@src/data_pipeline.py fix the memory leak in the chunk processor</span><br><br>
+      <span class="code-comment"># Give it docs or issue URLs for context</span><br>
+      <span class="code-prompt">&gt;</span> <span class="code-string">https://github.com/myorg/myrepo/issues/42 implement the fix described here</span>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 6: CLAUDE.MD ══ -->
+  <div class="slide" id="slide-6">
+    <div class="tag tag-green">Claude Code — Key Feature</div>
+    <h2>CLAUDE.md — Your Project's Brain</h2>
+    <div class="two-col" style="margin-top:24px;">
+      <div>
+        <p style="color:var(--muted); line-height:1.7; font-size:0.95rem;">
+          <code style="font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:0.9em;">CLAUDE.md</code> lives in your project root and is read at the start of <em>every</em> Claude Code session. Think of it as persistent working memory for your project.
+        </p>
+        <ul class="bullets" style="margin-top:16px;">
+          <li><span class="bicon">🏗️</span><div><strong>Build & test commands</strong><span class="bdesc">npm run test, make build, pytest — so Claude always runs the right thing</span></div></li>
+          <li><span class="bicon">📐</span><div><strong>Code style rules</strong><span class="bdesc">"Use ES modules, not CommonJS" · "Always type hint Python functions"</span></div></li>
+          <li><span class="bicon">📁</span><div><strong>Architecture pointers</strong><span class="bdesc">"State is managed in src/stores/" · "Data validation lives in validators/"</span></div></li>
+          <li><span class="bicon">⚠️</span><div><strong>Off-limits areas</strong><span class="bdesc">Files or patterns Claude should never modify without asking</span></div></li>
+        </ul>
+      </div>
+      <div class="code-block" style="margin-top:0; height: fit-content; font-size:0.8rem;">
+        <span class="code-comment"># CLAUDE.md</span><br><br>
+        <span class="code-string">## Build Commands</span><br>
+        - <span class="code-cmd">make test</span> — run full test suite<br>
+        - <span class="code-cmd">make lint</span> — flake8 + mypy<br>
+        - <span class="code-cmd">make docs</span> — build Sphinx docs<br><br>
+        <span class="code-string">## Code Style</span><br>
+        - Python 3.11+, type hints required<br>
+        - Numpy docstrings everywhere<br>
+        - No globals — use config objects<br><br>
+        <span class="code-string">## Architecture</span><br>
+        - Data I/O → <span class="code-cmd">src/io/</span><br>
+        - Analysis → <span class="code-cmd">src/analysis/</span><br>
+        - Never edit <span class="code-flag">data/raw/</span> directly<br><br>
+        <span class="code-comment"># Keep under ~150 lines for best results</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 7: PLAN MODE ══ -->
+  <div class="slide" id="slide-7">
+    <div class="tag tag-green">Claude Code — Workflow</div>
+    <h2>Plan Before You Code</h2>
+    <p class="subtitle" style="max-width:700px; text-align:left; margin: 0 0 24px 0; font-size:0.95rem;">
+      Jumping straight to implementation is the #1 cause of solving the <em>wrong</em> problem. Use the Plan → Review → Execute loop.
+    </p>
+    <div class="flow" style="margin-top:0;">
+      <div class="flow-step" style="border-color: rgba(126,232,162,0.3);">
+        <div class="num" style="color:var(--accent)">ENTER</div>
+        <div class="label">Plan Mode<br><span style="color:var(--muted); font-weight:400; font-size:0.72rem;"><kbd>Shift</kbd>+<kbd>Tab</kbd>×2</span></div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">02</div>
+        <div class="label">Explore<br><span style="color:var(--muted); font-weight:400; font-size:0.72rem;">Read-only, no changes</span></div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">03</div>
+        <div class="label">Generate Plan<br><span style="color:var(--muted); font-weight:400; font-size:0.72rem;">"think hard about this"</span></div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="num">04</div>
+        <div class="label">You Review<br><span style="color:var(--muted); font-weight:400; font-size:0.72rem;">Correct assumptions</span></div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color: rgba(91,189,255,0.3);">
+        <div class="num" style="color:var(--accent2)">GO</div>
+        <div class="label">Execute<br><span style="color:var(--muted); font-weight:400; font-size:0.72rem;">"ok, implement it"</span></div>
+      </div>
+    </div>
+    <div class="code-block" style="margin-top: 24px; font-size:0.83rem;">
+      <span class="code-prompt">&gt;</span> <span class="code-string">read /src/auth and understand session handling and env vars for secrets. Do not write any code yet — just give me a detailed plan for adding Google OAuth.</span><br><br>
+      <span class="code-comment"># Claude explores, then presents a step-by-step plan</span><br>
+      <span class="code-comment"># You review, push back, correct assumptions</span><br><br>
+      <span class="code-prompt">&gt;</span> <span class="code-string">Looks good. One thing: we use httpOnly cookies not localStorage. Now go ahead.</span>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 8: CONTEXT MANAGEMENT ══ -->
+  <div class="slide" id="slide-8">
+    <div class="tag tag-red">Claude Code — Critical Concept</div>
+    <h2>Context is Your Most Precious Resource</h2>
+    <div class="two-col" style="margin-top:24px;">
+      <div>
+        <div class="card card-red" style="margin-bottom:12px;">
+          <h3>⚠️ Why Context Degrades</h3>
+          <p>Every message, file read, and command output fills the context window. As it fills, Claude "forgets" earlier instructions and makes more mistakes. This is the primary failure mode.</p>
+        </div>
+        <div class="card card-green">
+          <h3>✅ Context Hygiene</h3>
+          <ul>
+            <li>Use <code style="font-family:'JetBrains Mono',monospace; color:var(--accent);">/clear</code> often — start fresh for each new task</li>
+            <li>Use <code style="font-family:'JetBrains Mono',monospace; color:var(--accent);">/compact</code> to summarize long sessions</li>
+            <li>Reference files with <code style="font-family:'JetBrains Mono',monospace; color:var(--accent);">@path</code> rather than pasting contents</li>
+            <li>Keep MCPs lean — 20k+ tokens of MCPs cripples available working space</li>
+            <li>Monitor the context usage indicator continuously</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="card card-blue">
+          <h3>💡 Pro Tips for Context</h3>
+          <ul style="margin-top:8px;">
+            <li style="margin-bottom:8px;">Break large tasks into smaller, independent sessions</li>
+            <li style="margin-bottom:8px;">Use <code style="font-family:'JetBrains Mono',monospace; color:var(--accent2);">CLAUDE.md</code> so you don't have to repeat project context each session</li>
+            <li style="margin-bottom:8px;">Pipe targeted data: <code style="font-family:'JetBrains Mono',monospace; color:var(--accent2);">cat file | claude</code></li>
+            <li style="margin-bottom:8px;">For parallel work: separate git worktrees + separate Claude instances</li>
+            <li>Up arrow navigates back to past sessions — handy for yesterday's context</li>
+          </ul>
+        </div>
+        <div class="code-block" style="margin-top:12px; font-size:0.8rem;">
+          <span class="code-comment"># Start fresh for each task</span><br>
+          <span class="code-prompt">&gt;</span> <span class="code-string">/clear</span><br><br>
+          <span class="code-comment"># Summarize and continue</span><br>
+          <span class="code-prompt">&gt;</span> <span class="code-string">/compact</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 9: VERIFICATION ══ -->
+  <div class="slide" id="slide-9">
+    <div class="tag tag-green">Claude Code — Best Practices</div>
+    <h2>Make Verification Rock-Solid</h2>
+    <p class="subtitle" style="text-align:left; margin:0 0 20px; font-size:0.95rem; max-width:100%;">
+      Claude can check its own work — but only if you give it clear signals. Build verification into every task.
+    </p>
+    <div class="cards cards-3">
+      <div class="card card-green">
+        <div class="icon">🧪</div>
+        <h3>Test Suites</h3>
+        <p>Tell Claude to run your tests after every change. "Don't consider it done until all tests pass." Define the command in CLAUDE.md.</p>
+      </div>
+      <div class="card card-blue">
+        <div class="icon">🖥️</div>
+        <h3>Claude in Chrome</h3>
+        <p>For UI work: the browser extension lets Claude open tabs, inspect DOM/console/network, and iterate until the UI matches expectations.</p>
+      </div>
+      <div class="card card-orange">
+        <div class="icon">🔗</div>
+        <h3>Hooks (Advanced)</h3>
+        <p>Stop hooks run after each response. Auto-trigger builds, type checks, linters. If &lt; 5 errors, show Claude. If ≥ 5, trigger a fix agent.</p>
+      </div>
+    </div>
+    <div class="quote-block" style="margin-top:24px; font-size:0.9rem;">
+      Include tests, screenshots, or expected outputs so Claude can check itself. Invest in making your verification rock-solid.
+      <div class="quote-attr">— Anthropic Claude Code docs</div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 10: PARALLEL / ADVANCED ══ -->
+  <div class="slide" id="slide-10">
+    <div class="tag tag-blue">Claude Code — Power Features</div>
+    <h2>Going Further: Parallel & Advanced</h2>
+    <div class="cards cards-2" style="margin-top:28px;">
+      <div class="card card-blue">
+        <div class="icon">⚡⚡</div>
+        <h3>Parallel Sessions with Git Worktrees</h3>
+        <p>Run multiple Claude instances simultaneously on different features — each in its own isolated git worktree. Zero conflicts, full parallelism. Kick off a refactor in the cloud, go for coffee, then pull it back locally to review.</p>
+      </div>
+      <div class="card card-orange">
+        <div class="icon">🤖</div>
+        <h3>Sub-Agents & Skills</h3>
+        <p>Create custom agents in <code style="font-family:'JetBrains Mono',monospace; color:var(--accent3);">.claude/agents/</code> with their own tools and permissions. Build feature-specific agents (e.g., "frontend-error-fixer", "build-error-resolver") instead of one overloaded agent.</p>
+      </div>
+      <div class="card card-green">
+        <div class="icon">🔌</div>
+        <h3>MCP Servers</h3>
+        <p>Model Context Protocol extends Claude with external tools — databases, GitHub, Slack, custom data sources. Keep MCP token usage lean (under 20k) to preserve working context.</p>
+      </div>
+      <div class="card card-red">
+        <div class="icon">🔔</div>
+        <h3>Hooks & Notifications</h3>
+        <p>Set up hooks to get a text message when a long-running agent finishes. Stop babysitting Claude — let it work and come back when it's done.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 11: SUPER WHISPER ══ -->
+  <div class="slide" id="slide-11">
+    <div class="tag tag-blue">Speech-to-Text</div>
+    <h2>Super Whisper</h2>
+    <div class="two-col" style="margin-top:24px;">
+      <div>
+        <ul class="bullets">
+          <li>
+            <span class="bicon">🎙️</span>
+            <div><strong>OpenAI Whisper powered</strong><span class="bdesc">Runs on-device or via API. Exceptional accuracy, especially for technical vocabulary.</span></div>
+          </li>
+          <li>
+            <span class="bicon">⌨️</span>
+            <div><strong>Global hotkey</strong><span class="bdesc">Works system-wide. Dictate into any app — terminal, editor, browser, Slack.</span></div>
+          </li>
+          <li>
+            <span class="bicon">🧬</span>
+            <div><strong>Custom vocabulary</strong><span class="bdesc">Teach it your domain terms: library names, file paths, technical jargon, colleague names.</span></div>
+          </li>
+          <li>
+            <span class="bicon">✍️</span>
+            <div><strong>Post-processing prompts</strong><span class="bdesc">Auto-format transcript as a Claude prompt, code comment, Git commit message, etc.</span></div>
+          </li>
+          <li>
+            <span class="bicon">💸</span>
+            <div><strong>Modes</strong><span class="bdesc">Local (free, private) or cloud (faster, more accurate). Subscription model for macOS.</span></div>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <div class="card card-blue">
+          <h3>🏆 Best For</h3>
+          <ul>
+            <li style="margin-bottom:6px;">Dictating long, structured prompts to Claude Code</li>
+            <li style="margin-bottom:6px;">Writing commit messages and PR descriptions hands-free</li>
+            <li style="margin-bottom:6px;">Capturing ideas during code review without breaking flow</li>
+            <li style="margin-bottom:6px;">Drafting documentation or comments while reading code</li>
+          </ul>
+        </div>
+        <div class="card card-green" style="margin-top:12px;">
+          <h3>💡 Top Tips</h3>
+          <ul>
+            <li style="margin-bottom:6px;">Add your project's key terms to custom vocabulary immediately</li>
+            <li style="margin-bottom:6px;">Create a "Claude prompt" output mode to format speech as structured commands</li>
+            <li>Use local mode for anything sensitive — no data leaves your machine</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 12: MACOS DICTATION ══ -->
+  <div class="slide" id="slide-12">
+    <div class="tag tag-orange">Speech-to-Text</div>
+    <h2>macOS Built-in Dictation</h2>
+    <div class="two-col" style="margin-top:24px;">
+      <div>
+        <ul class="bullets">
+          <li>
+            <span class="bicon">🍎</span>
+            <div><strong>Completely free & built-in</strong><span class="bdesc">System Settings → Keyboard → Dictation. Press Fn twice (or custom key) to activate.</span></div>
+          </li>
+          <li>
+            <span class="bicon">🔒</span>
+            <div><strong>On-device, private</strong><span class="bdesc">Enhanced Dictation processes entirely locally. Nothing sent to Apple servers.</span></div>
+          </li>
+          <li>
+            <span class="bicon">🌐</span>
+            <div><strong>Works anywhere</strong><span class="bdesc">Any text input on macOS — Xcode, VS Code, Terminal, browsers, everything.</span></div>
+          </li>
+          <li>
+            <span class="bicon">🗣️</span>
+            <div><strong>Voice commands</strong><span class="bdesc">Say "new line", "open bracket", "period", "all caps [word]" for hands-free formatting.</span></div>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <table class="comp-table" style="margin-top:0;">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>macOS Dictation</th>
+              <th>Super Whisper</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Cost</td>
+              <td class="hl-green">Free</td>
+              <td>Subscription</td>
+            </tr>
+            <tr>
+              <td>Accuracy</td>
+              <td>Good</td>
+              <td class="hl-green">Excellent</td>
+            </tr>
+            <tr>
+              <td>Custom vocab</td>
+              <td>Basic</td>
+              <td class="hl-green">Full control</td>
+            </tr>
+            <tr>
+              <td>Post-processing</td>
+              <td>None</td>
+              <td class="hl-green">AI-powered</td>
+            </tr>
+            <tr>
+              <td>Technical terms</td>
+              <td>Struggles</td>
+              <td class="hl-green">Excellent</td>
+            </tr>
+            <tr>
+              <td>Privacy</td>
+              <td class="hl-green">On-device</td>
+              <td class="hl-green">Local mode</td>
+            </tr>
+            <tr>
+              <td>Setup effort</td>
+              <td class="hl-green">Zero</td>
+              <td>Some</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="color:var(--muted); font-size:0.8rem; margin-top:10px;">
+          💡 Recommendation: Start with macOS Dictation. Graduate to Super Whisper once you feel the pain of its limitations.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 13: COMBINING TOOLS ══ -->
+  <div class="slide" id="slide-13">
+    <div class="tag tag-orange">Power Combo</div>
+    <h2>Voice + Claude Code = Flow State</h2>
+    <p class="subtitle" style="text-align:left; margin: 0 0 24px; font-size:0.95rem; max-width:100%;">
+      Hands stay on keyboard for code review. Voice handles intent, context, and direction.
+    </p>
+    <div class="cards cards-2">
+      <div class="card card-orange">
+        <h3>🎯 Example Workflow</h3>
+        <p style="margin-top:8px; line-height:1.8;">
+          <strong>1.</strong> Read through code silently<br>
+          <strong>2.</strong> Hold hotkey → dictate your intent<br>
+          <span style="color:var(--muted); font-size:0.85rem; margin-left:16px; display:block; margin-bottom:4px;">"Add error handling for the case where the API returns null, log it with our standard logger, and write a test for it"</span>
+          <strong>3.</strong> Super Whisper formats as a Claude prompt<br>
+          <strong>4.</strong> Paste into Claude Code → let it run<br>
+          <strong>5.</strong> Review changes while dictating next task
+        </p>
+      </div>
+      <div class="card card-green">
+        <h3>✅ What to Dictate vs. Type</h3>
+        <p style="margin-top:8px;">
+          <strong style="color:var(--accent)">Dictate:</strong>
+        </p>
+        <ul style="margin-top:4px; margin-bottom:10px;">
+          <li>High-level intent and requirements</li>
+          <li>Context and constraints for Claude</li>
+          <li>Commit messages, PR descriptions</li>
+          <li>Comments and documentation</li>
+        </ul>
+        <p><strong style="color:var(--warn)">Type:</strong></p>
+        <ul style="margin-top:4px;">
+          <li>Code, file paths, exact syntax</li>
+          <li>Slash commands (<code style="font-family:'JetBrains Mono',monospace;">/clear</code>, <code style="font-family:'JetBrains Mono',monospace;">@path</code>)</li>
+          <li>Anything with special characters</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 14: RESOURCES ══ -->
+  <div class="slide" id="slide-14">
+    <div class="tag tag-blue">Resources</div>
+    <h2>Where to Learn More</h2>
+    <div class="resource-list">
+      <div class="resource-item">
+        <span class="rcat rcat-cc">Claude Code</span>
+        <div><div class="rname">Anthropic Official Docs — Best Practices</div><div class="rurl">code.claude.com/docs/en/best-practices</div></div>
+      </div>
+      <div class="resource-item">
+        <span class="rcat rcat-cc">Claude Code</span>
+        <div><div class="rname">Claude Code Common Workflows</div><div class="rurl">code.claude.com/docs/en/common-workflows</div></div>
+      </div>
+      <div class="resource-item">
+        <span class="rcat rcat-cc">Claude Code</span>
+        <div><div class="rname">Awesome Claude Code (community curated list)</div><div class="rurl">github.com/hesreallyhim/awesome-claude-code</div></div>
+      </div>
+      <div class="resource-item">
+        <span class="rcat rcat-cc">Claude Code</span>
+        <div><div class="rname">Claude Code Best Practices Reference Guide</div><div class="rurl">rosmur.github.io/claudecode-best-practices</div></div>
+      </div>
+      <div class="resource-item">
+        <span class="rcat rcat-cc">Claude Code</span>
+        <div><div class="rname">Complete Tutorial — Sid Bharath (updated Feb 2026)</div><div class="rurl">siddharthbharath.com/claude-code-the-complete-guide</div></div>
+      </div>
+      <div class="resource-item">
+        <span class="rcat rcat-sw">Super Whisper</span>
+        <div><div class="rname">Super Whisper Official Docs & Workflow Guide</div><div class="rurl">superwhisper.com/docs</div></div>
+      </div>
+      <div class="resource-item">
+        <span class="rcat rcat-mac">macOS</span>
+        <div><div class="rname">Apple Support — Use Dictation on Mac</div><div class="rurl">support.apple.com — search "Use Dictation on Mac"</div></div>
+      </div>
+      <div class="resource-item">
+        <span class="rcat rcat-cc">Prompting</span>
+        <div><div class="rname">Anthropic Prompt Engineering Guide</div><div class="rurl">docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 15: QUICK START CHECKLIST ══ -->
+  <div class="slide" id="slide-15">
+    <div class="tag tag-green">Next Steps</div>
+    <h2>Your Week-1 Checklist</h2>
+    <div class="cards cards-2" style="margin-top:28px;">
+      <div class="card card-green">
+        <h3>🚀 Claude Code</h3>
+        <ul style="margin-top:10px;">
+          <li style="margin-bottom:8px;">Install: <code style="font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:0.85em;">npm install -g @anthropic-ai/claude-code</code></li>
+          <li style="margin-bottom:8px;">Run <code style="font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:0.85em;">/init</code> in one of your research repos</li>
+          <li style="margin-bottom:8px;">Iterate on the generated <code style="font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:0.85em;">CLAUDE.md</code></li>
+          <li style="margin-bottom:8px;">Try Plan Mode (<kbd>Shift</kbd>+<kbd>Tab</kbd>×2) on a real task</li>
+          <li>Practice <code style="font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:0.85em;">/clear</code> discipline — fresh session each task</li>
+        </ul>
+      </div>
+      <div class="card card-blue">
+        <h3>🎙️ Speech-to-Text</h3>
+        <ul style="margin-top:10px;">
+          <li style="margin-bottom:8px;">Enable macOS Dictation today (5 min setup)</li>
+          <li style="margin-bottom:8px;">Practice dictating Claude prompts this week</li>
+          <li style="margin-bottom:8px;">If you love it, trial Super Whisper for 2 weeks</li>
+          <li style="margin-bottom:8px;">Add your key technical terms to custom vocab</li>
+          <li>Create a "Claude prompt" output template in Super Whisper</li>
+        </ul>
+      </div>
+    </div>
+    <div class="quote-block" style="margin-top:24px; font-size:0.9rem;">
+      The difference between frustration and productivity isn't the tool — it's how you use it. Start small, iterate your workflow, and these tools compound dramatically over time.
+      <div class="quote-attr">— Claude Code community best practices guide</div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 16: CLOSING ══ -->
+  <div class="slide" id="slide-16">
+    <div class="glow"></div>
+    <div class="tag tag-green">Thank You</div>
+    <h1>
+      Questions? <span class="hl-green">Demo?</span>
+    </h1>
+    <p class="subtitle">
+      Let's try it live — or share your own workflows. The best tricks come from the community.
+    </p>
+    <div class="cards cards-3" style="margin-top:36px; max-width:820px;">
+      <div class="card card-green">
+        <div class="icon">💬</div>
+        <h3>Share what you build</h3>
+        <p>r/ClaudeAI · 450k+ members actively sharing Claude Code tips and patterns.</p>
+      </div>
+      <div class="card card-blue">
+        <div class="icon">🔗</div>
+        <h3>These slides</h3>
+        <p class="mono" style="color:var(--accent2); font-size:0.8rem;">Made with Claude · HTML slideshow<br>← → or click arrows to navigate</p>
+      </div>
+      <div class="card card-orange">
+        <div class="icon">🌱</div>
+        <h3>Start today</h3>
+        <p>The learning curve is real but short. Most engineers are productive within their first week.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- ── NAV BAR ── -->
+<div class="nav">
+  <button id="btn-prev" onclick="changeSlide(-1)" title="Previous">‹</button>
+  <div class="progress-dots" id="dots"></div>
+  <div class="slide-counter" id="counter">1 / 16</div>
+  <button id="btn-next" onclick="changeSlide(1)" title="Next">›</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  // Build dots
+  const dotsEl = document.getElementById('dots');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  });
+
+  function goTo(idx) {
+    if (idx < 0 || idx >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 400);
+    current = idx;
+    slides[current].classList.add('active');
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+    document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+  }
+
+  function changeSlide(dir) { goTo(current + dir); }
+
+  // Keyboard nav
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') changeSlide(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   changeSlide(-1);
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End')  goTo(total - 1);
+  });
+
+  // Init first slide
+  slides[0].classList.add('active');
+</script>
+</body>
+</html>
