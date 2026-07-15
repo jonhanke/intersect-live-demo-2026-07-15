@@ -1,0 +1,52 @@
+name: ✨ Feature request
+description: Suggest an improvement or new feature
+labels: ["enhancement", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, skim [SPEC.md](../blob/main/SPEC.md) — your idea may already be
+        in the **v1 feature list** or the **backlog** (§3), or touch one of the
+        **open questions** (§8).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the lunch-picking pain, not just the solution.
+      placeholder: "When I spin with friends, we each get different results and argue anyway..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      placeholder: "Group mode: share a link, everyone spins, majority wins."
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Where does this fit?
+      options:
+        - Already in the SPEC.md backlog (§3) — I want to champion it
+        - Improves a v1 feature (wheel, filters, result card, location input)
+        - Brand new idea (not in SPEC.md)
+        - Relates to an open question in SPEC.md §8
+    validations:
+      required: true
+  - type: textarea
+    id: fit
+    attributes:
+      label: Fit with the project goal
+      description: >-
+        The core goal is "hungry → decision in under 10 seconds, with delight."
+        Does this keep that flow fast and simple? Does it need paid APIs
+        (photos/ratings need Google Places or Foursquare — v1 is deliberately keyless)?
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

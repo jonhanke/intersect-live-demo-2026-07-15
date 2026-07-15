@@ -1,0 +1,60 @@
+name: 🍜 Restaurant data problem
+description: A restaurant is missing, closed, or has wrong hours/cuisine/location
+labels: ["osm-data", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Wheel of Lunch gets its restaurant data from **OpenStreetMap** (via the Overpass
+        API). If a place is missing or wrong, the best fix is usually to
+        [edit it on openstreetmap.org](https://www.openstreetmap.org/fixthemap) — the fix
+        then benefits every OSM user, and flows into this app automatically (allow some
+        time for Overpass to pick up the change).
+
+        Still worth filing here! It helps us spot patterns (e.g. our query or hours
+        parsing dropping places it shouldn't) and track OSM coverage gaps.
+  - type: input
+    id: restaurant
+    attributes:
+      label: Restaurant name
+      placeholder: "e.g. Lucky Noodle House"
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Rough location
+      description: City/neighborhood or a cross-street — enough to find it on a map.
+      placeholder: "e.g. Hawthorne Blvd, Portland, OR"
+    validations:
+      required: true
+  - type: dropdown
+    id: problem-type
+    attributes:
+      label: What's wrong?
+      options:
+        - Restaurant is missing from results (exists in real life)
+        - Permanently closed but still shows up
+        - Wrong or missing opening hours (open-now filter misbehaves)
+        - Wrong cuisine classification
+        - Wrong position / distance on the map
+        - Other (describe below)
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: >-
+        What did the app show vs. reality? If you already checked the place on
+        openstreetmap.org, paste a link to the OSM node/way — that helps us tell
+        "bad data upstream" from "our normalization broke it".
+    validations:
+      required: false
+  - type: checkboxes
+    id: osm-checked
+    attributes:
+      label: Upstream check
+      options:
+        - label: I looked the place up on openstreetmap.org to confirm whether the data is wrong there too
+          required: false
