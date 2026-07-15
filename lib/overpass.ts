@@ -2,6 +2,9 @@ import type { Coords, Restaurant, SearchParams } from "./types";
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 
+// Overpass rejects requests without a descriptive User-Agent (HTTP 406).
+const USER_AGENT = "WheelOfLunch/0.1 (https://github.com/jonhanke/intersect-live-demo-2026-07-15)";
+
 interface OverpassElement {
   type: "node" | "way" | "relation";
   id: number;
@@ -77,7 +80,10 @@ export async function fetchRestaurants(params: SearchParams): Promise<Restaurant
   const query = buildQuery(params);
   const res = await fetch(OVERPASS_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": USER_AGENT,
+    },
     body: new URLSearchParams({ data: query }),
     next: { revalidate: 300 },
   });
