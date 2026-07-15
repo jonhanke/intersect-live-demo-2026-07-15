@@ -1,4 +1,9 @@
-import type { Coords, Restaurant, SearchParams } from "./types";
+import type {
+  Coords,
+  ReservationPolicy,
+  Restaurant,
+  SearchParams,
+} from "./types";
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 
@@ -40,6 +45,27 @@ function buildQuery(params: SearchParams): string {
 out center tags;`;
 }
 
+const RESERVATION_VALUES: ReservationPolicy[] = [
+  "yes",
+  "no",
+  "required",
+  "recommended",
+  "members_only",
+];
+
+function normalizeReservation(
+  value: string | undefined,
+): ReservationPolicy | null {
+  return RESERVATION_VALUES.includes(value as ReservationPolicy)
+    ? (value as ReservationPolicy)
+    : null;
+}
+
+function parseCapacity(value: string | undefined): number | null {
+  const n = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 function toRestaurant(el: OverpassElement, origin: Coords): Restaurant | null {
   const tags = el.tags ?? {};
   const name = tags.name;
@@ -71,6 +97,8 @@ function toRestaurant(el: OverpassElement, origin: Coords): Restaurant | null {
     distanceMeters: Math.round(haversineMeters(origin, coords)),
     openingHours: tags.opening_hours ?? null,
     isOpenNow: null, // filled in later by the open-now filter
+    reservation: normalizeReservation(tags.reservation),
+    capacitySeats: parseCapacity(tags.capacity),
     address: addressParts.length ? addressParts.join(" ") : null,
     website: tags.website ?? tags["contact:website"] ?? null,
   };
