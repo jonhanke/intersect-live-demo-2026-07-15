@@ -11,6 +11,7 @@ interface RequestBody {
   radiusMeters?: number;
   cuisine?: string;
   openNowOnly?: boolean;
+  wheelchairOnly?: boolean;
 }
 
 const MAX_RADIUS_METERS = 20000;
@@ -78,9 +79,19 @@ export async function POST(request: Request) {
 
   // openNowOnly excludes places we KNOW are closed; unknown-hours places stay,
   // otherwise sparse OSM hours data would hide most results.
-  const filtered = body.openNowOnly
+  let filtered = body.openNowOnly
     ? withOpenState.filter((r) => r.isOpenNow !== false)
     : withOpenState;
+
+  // wheelchairOnly keeps only places tagged accessible (yes or limited).
+  // Opposite default from open-now: unknown is EXCLUDED, because sending
+  // someone who needs access to an inaccessible place is worse than
+  // offering fewer options.
+  if (body.wheelchairOnly) {
+    filtered = filtered.filter(
+      (r) => r.wheelchair === "yes" || r.wheelchair === "limited",
+    );
+  }
 
   return NextResponse.json({
     origin: { lat, lon, label: originLabel },

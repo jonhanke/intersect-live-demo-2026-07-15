@@ -1,4 +1,4 @@
-import type { Coords, Restaurant, SearchParams } from "./types";
+import type { Coords, Restaurant, SearchParams, WheelchairAccess } from "./types";
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 
@@ -40,6 +40,14 @@ function buildQuery(params: SearchParams): string {
 out center tags;`;
 }
 
+function normalizeWheelchair(value: string | undefined): WheelchairAccess | null {
+  // OSM also uses "designated" for purpose-built accessible places.
+  if (value === "yes" || value === "designated") return "yes";
+  if (value === "limited") return "limited";
+  if (value === "no") return "no";
+  return null;
+}
+
 function toRestaurant(el: OverpassElement, origin: Coords): Restaurant | null {
   const tags = el.tags ?? {};
   const name = tags.name;
@@ -71,6 +79,7 @@ function toRestaurant(el: OverpassElement, origin: Coords): Restaurant | null {
     distanceMeters: Math.round(haversineMeters(origin, coords)),
     openingHours: tags.opening_hours ?? null,
     isOpenNow: null, // filled in later by the open-now filter
+    wheelchair: normalizeWheelchair(tags.wheelchair),
     address: addressParts.length ? addressParts.join(" ") : null,
     website: tags.website ?? tags["contact:website"] ?? null,
   };
