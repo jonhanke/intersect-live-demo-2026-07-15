@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Project plan & spec
+    url: https://github.com/jonhanke/intersect-live-demo-2026-07-15/blob/main/SPEC.md
+    about: Read the goal, feature list, architecture, and open questions before filing.
+  - name: 🗺️ Fix restaurant data at the source
+    url: https://www.openstreetmap.org/fixthemap
+    about: Restaurant info comes from OpenStreetMap — missing places and wrong hours are often best fixed there.

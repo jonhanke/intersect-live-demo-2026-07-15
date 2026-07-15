@@ -1,0 +1,67 @@
+name: 🐛 Bug report
+description: Something in the app isn't working (wheel, controls, search, results)
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Wheel of Lunch! 🎡
+
+        **Is the problem actually wrong restaurant info** (missing place, wrong hours,
+        wrong cuisine)? That's usually an OpenStreetMap data issue, not an app bug —
+        please use the **🍜 Restaurant data problem** template instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What went wrong, and what did you expect to happen instead?
+      placeholder: "I pressed Spin and the wheel never stopped spinning / no results were shown / ..."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Allow location access (or type an address)
+        2. Set radius to 2 km, cuisine to "pizza", open-now ON
+        3. Press Spin
+        4. ...
+    validations:
+      required: true
+  - type: textarea
+    id: search-settings
+    attributes:
+      label: Search settings you used
+      description: Radius, cuisine filter, open-now on/off, geolocation vs. typed address.
+      placeholder: "Radius 1 km · no cuisine filter · open-now ON · browser geolocation"
+    validations:
+      required: true
+  - type: input
+    id: area
+    attributes:
+      label: Rough search area
+      description: >-
+        Results depend heavily on where you searched. City or neighborhood is enough —
+        please do NOT post exact coordinates or your home address.
+      placeholder: "e.g. downtown Portland, OR"
+    validations:
+      required: false
+  - type: input
+    id: browser
+    attributes:
+      label: Browser & device
+      description: Geolocation and animations behave differently across browsers.
+      placeholder: "e.g. Safari 18 on iPhone 15 / Chrome 126 on Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors / network failures
+      description: >-
+        If you can, open dev tools (F12 → Console / Network) and paste any errors —
+        especially failed calls to `/api/restaurants`.
+      render: text
+    validations:
+      required: false

@@ -1,0 +1,72 @@
+# Label definitions for Wheel of Lunch — source of truth for repo labels.
+# Apply after edits with:
+#   yq -o=json '.' .github/labels.yml | jq -c '.[]' | while read -r l; do
+#     gh label create "$(jq -r .name <<<"$l")" --force \
+#       --color "$(jq -r .color <<<"$l")" \
+#       --description "$(jq -r .description <<<"$l")"
+#   done
+
+# --- Type (GitHub defaults, kept) ---
+- name: bug
+  color: d73a4a
+  description: Something isn't working
+- name: enhancement
+  color: a2eeef
+  description: New feature or request
+- name: documentation
+  color: "0075ca"
+  description: README, SPEC.md, or code docs
+- name: question
+  color: d876e3
+  description: Further information is requested
+- name: duplicate
+  color: cfd3d7
+  description: This issue or pull request already exists
+- name: invalid
+  color: e4e669
+  description: This doesn't seem right
+- name: wontfix
+  color: ffffff
+  description: This will not be worked on
+
+# --- Contribution flow ---
+- name: good first issue
+  color: 7057ff
+  description: Good for newcomers — scoped, low-context
+- name: help wanted
+  color: "008672"
+  description: Maintainers would love a hand here
+- name: needs triage
+  color: d4c5f9
+  description: New issue awaiting a first look and labels
+
+# --- Area (matches the architecture in SPEC.md §5) ---
+- name: "area: wheel"
+  color: fbca04
+  description: Spinning wheel animation and random selection
+- name: "area: ui"
+  color: fef2c0
+  description: Controls, result card, layout, styling
+- name: "area: api"
+  color: 1d76db
+  description: The /api/restaurants server route
+- name: "area: data"
+  color: 0e8a16
+  description: Overpass/Nominatim queries, normalization, hours parsing
+- name: "area: geolocation"
+  color: 5319e7
+  description: Browser geolocation and address geocoding fallback
+
+# --- Project-specific ---
+- name: osm-data
+  color: c5def5
+  description: Problem is in upstream OpenStreetMap data, not our code
+- name: accessibility
+  color: d93f0b
+  description: A11y — includes reduced-motion handling for the wheel
+- name: v1
+  color: b60205
+  description: Required for the v1 launch (SPEC.md §3)
+- name: backlog
+  color: ededed
+  description: Post-v1 nice-to-have (SPEC.md §3 backlog)

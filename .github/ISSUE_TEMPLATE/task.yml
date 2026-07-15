@@ -1,0 +1,50 @@
+name: 🔨 Task / milestone work
+description: A scoped piece of work from the SPEC.md roadmap (maintainers & contributors)
+labels: ["needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For breaking the [SPEC.md milestones](../blob/main/SPEC.md) (§7) into
+        pick-up-able chunks of work.
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: SPEC.md milestone
+      options:
+        - "2 — Restaurant search API (Overpass + Nominatim)"
+        - "3 — Main UI + controls (location, radius, cuisine, open-now)"
+        - "4 — Spinning wheel animation + result card"
+        - "5 — Open-now filter + avoid-repeats memory"
+        - "6 — End-to-end testing + Vercel deploy"
+        - "Post-v1 backlog"
+        - "Other / cross-cutting"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What needs to be done?
+      description: Scope it so one person can pick it up and finish it in one PR.
+    validations:
+      required: true
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done when
+      placeholder: |
+        - [ ] POST /api/restaurants returns normalized places for lat/lon + radius
+        - [ ] Descriptive User-Agent sent to Overpass
+        - [ ] Handles zero-results without crashing
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Hints / constraints
+      description: >-
+        Relevant SPEC.md sections, API docs, gotchas. Remember AGENTS.md: this repo's
+        Next.js version has breaking changes — check the bundled docs in
+        `node_modules/next/dist/docs/` before coding.
+    validations:
+      required: false
