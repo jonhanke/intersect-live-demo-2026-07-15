@@ -1,3 +1,4 @@
+import { synthesizeDescription } from "./describe";
 import type { Coords, Restaurant, SearchParams } from "./types";
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
@@ -71,6 +72,9 @@ function toRestaurant(el: OverpassElement, origin: Coords): Restaurant | null {
     distanceMeters: Math.round(haversineMeters(origin, coords)),
     openingHours: tags.opening_hours ?? null,
     isOpenNow: null, // filled in later by the open-now filter
+    description: synthesizeDescription(tags),
+    wikipedia: tags.wikipedia ?? null,
+    wikidata: tags.wikidata ?? null,
     address: addressParts.length ? addressParts.join(" ") : null,
     website: tags.website ?? tags["contact:website"] ?? null,
   };
