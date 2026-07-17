@@ -11,9 +11,14 @@ interface RequestBody {
   radiusMeters?: number;
   cuisine?: string;
   openNowOnly?: boolean;
+  parkingNearby?: boolean;
+  transitNearby?: boolean;
 }
 
 const MAX_RADIUS_METERS = 20000;
+// "Nearby" = a short walk: across a parking lot, or ~3 minutes to a stop.
+const PARKING_NEARBY_METERS = 150;
+const TRANSIT_NEARBY_METERS = 250;
 
 export async function POST(request: Request) {
   let body: RequestBody;
@@ -61,6 +66,8 @@ export async function POST(request: Request) {
       lon,
       radiusMeters,
       cuisine: body.cuisine,
+      includeParking: body.parkingNearby,
+      includeTransit: body.transitNearby,
     });
   } catch (err) {
     console.error("[restaurants] overpass error:", err);
@@ -78,9 +85,26 @@ export async function POST(request: Request) {
 
   // openNowOnly excludes places we KNOW are closed; unknown-hours places stay,
   // otherwise sparse OSM hours data would hide most results.
-  const filtered = body.openNowOnly
+  let filtered = body.openNowOnly
     ? withOpenState.filter((r) => r.isOpenNow !== false)
     : withOpenState;
+
+  // Distance-based, so no unknown-value dilemma: either a mapped public
+  // parking lot / transit stop is within walking range or it isn't.
+  if (body.parkingNearby) {
+    filtered = filtered.filter(
+      (r) =>
+        r.parkingDistanceMeters !== null &&
+        r.parkingDistanceMeters <= PARKING_NEARBY_METERS,
+    );
+  }
+  if (body.transitNearby) {
+    filtered = filtered.filter(
+      (r) =>
+        r.transitDistanceMeters !== null &&
+        r.transitDistanceMeters <= TRANSIT_NEARBY_METERS,
+    );
+  }
 
   return NextResponse.json({
     origin: { lat, lon, label: originLabel },
