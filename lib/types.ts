@@ -3,6 +3,10 @@ export interface Coords {
   lon: number;
 }
 
+/** Normalized OSM `wheelchair` tag: yes = fully accessible, limited = partial
+ *  (e.g. accessible entrance but not toilets), no = not accessible. */
+export type WheelchairAccess = "yes" | "limited" | "no";
+
 export interface Restaurant {
   id: string;
   name: string;
@@ -11,6 +15,7 @@ export interface Restaurant {
   distanceMeters: number;
   openingHours: string | null;
   isOpenNow: boolean | null;
+  wheelchair: WheelchairAccess | null;
   address: string | null;
   website: string | null;
 }
@@ -21,4 +26,5 @@ export interface SearchParams {
   radiusMeters: number;
   cuisine?: string;
   openNowOnly?: boolean;
+  wheelchairOnly?: boolean;
 }
